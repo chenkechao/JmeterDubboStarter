@@ -1,5 +1,8 @@
 package com.one;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient;
 import org.apache.jmeter.protocol.java.sampler.JavaSamplerContext;
@@ -7,97 +10,229 @@ import org.apache.jmeter.samplers.SampleResult;
 
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.util.*;
 //import com.unj.dubbotest.provider.DemoService;
 
 public class TestConsumer  extends AbstractJavaSamplerClient {
-	
-	private static String label = "consumer"; 
-	
-	private   String ID;
 
-	//dubbo·şÎñµØÖ·
-	private  String URL;
+	private static final Logger logger = LoggerFactory.getLogger(TestConsumer.class);
 
-	private  String VERSION ;
+	private long start = 0;//è®°å½•æµ‹è¯•å¼€å§‹æ—¶é—´ï¼›
+	private long end = 0;//è®°å½•æµ‹è¯•ç»“æŸæ—¶é—´ï¼›
 
-	private  String SERVICE_NAME;   
-
+	private String ID = "serviceImpl";
+	private String URL = "dubbo://zk1.ztosys.com:2181";
+	private String VERSION = "";
+	private String SERVICE_NAME;
 	private Object object;
-	 
-	 public void init() {
-		// µ±Ç°Ó¦ÓÃÅäÖÃ
-		ApplicationConfig application = new ApplicationConfig();
-		application.setName("hehe_consumer");
 
-		// ×¢Òâ£ºReferenceConfigÎªÖØ¶ÔÏó£¬ÄÚ²¿·â×°ÁËÓë×¢²áÖĞĞÄµÄÁ¬½Ó£¬ÒÔ¼°Óë·şÎñÌá¹©·½µÄÁ¬½Ó
-		// ÒıÓÃÔ¶³Ì·şÎñ
-		ReferenceConfig  reference = new ReferenceConfig(); // ´ËÊµÀıºÜÖØ£¬·â×°ÁËÓë×¢²áÖĞĞÄµÄÁ¬½ÓÒÔ¼°ÓëÌá¹©ÕßµÄÁ¬½Ó£¬Çë×ÔĞĞ»º´æ£¬·ñÔò¿ÉÄÜÔì³ÉÄÚ´æºÍÁ¬½ÓĞ¹Â©
+	private void initDubboClient(){
+		ApplicationConfig application = new ApplicationConfig();
+		application.setName("zzt-service");
+
+		ReferenceConfig reference = new ReferenceConfig();
 		reference.setApplication(application);
 		reference.setId(ID);
 		reference.setVersion(VERSION);
-		//dubbo·şÎñÃû
 		reference.setInterface(SERVICE_NAME);
-
-		//dubboipµØÖ·
 		reference.setUrl(URL);
+		object = reference.get();
+	}
 
-		// ºÍ±¾µØbeanÒ»ÑùÊ¹ÓÃxxxService
-	    object = reference.get(); // ×¢Òâ£º´Ë´úÀí¶ÔÏóÄÚ²¿·â×°ÁËËùÓĞÍ¨Ñ¶Ï¸½Ú£¬¶ÔÏó½ÏÖØ£¬Çë»º´æ¸´ÓÃ\
-		}
-	 
-    public void setupTest(){  
-		//¶¨Òå²âÊÔ³õÊ¼Öµ£¬setupTestÖ»ÔÚ²âÊÔ¿ªÊ¼Ç°Ê¹ÓÃ  
-		System.out.println("setupTest");  
-	}  
+	//åˆå§‹åŒ–æ“ä½œ
+	@Override
+	public void setupTest(JavaSamplerContext javaSamplerContext) {
+//        ID = javaSamplerContext.getParameter("ID");
+//        URL = javaSamplerContext.getParameter("URL");
+//        VERSION = javaSamplerContext.getParameter("VERSION");
+//        SERVICE_NAME = javaSamplerContext.getParameter("SERVICE_NAME");
+		Iterator<String> iterator = javaSamplerContext.getParameterNamesIterator();
+		SERVICE_NAME = javaSamplerContext.getParameter(iterator.next());
+		initDubboClient();
+	}
 
-	public SampleResult runTest(JavaSamplerContext arg0) {
-		SampleResult sr = new SampleResult(); ; 
+	/**
+	 * è®¾ç½®é»˜è®¤å€¼
+	 * @return
+	 */
+	public Arguments getDefaultParameters() {
+		Arguments arguments = new Arguments();
+		//params.addArgument("ID", "orderSearchServiceImpl");
+		//params.addArgument("URL", "dubbo://192.168.133.1:20880");
+		//params.addArgument("VERSION", "2.5.3");
+		//params.addArgument("VERSION", "");
+		arguments.addArgument("æ¥å£å(å¿…å¡«)", "com.zto.order.OrderSearchService");
+		arguments.addArgument("æ–¹æ³•å(å¿…å¡«)", "searchOrder");
+		arguments.addArgument("æ–¹æ³•å‚æ•°ç±»å‹æ•°ç»„(å¿…å¡«)", "['java.lang.String','java.lang.String']");
+		arguments.addArgument("è¯·æ±‚å‚æ•°1", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°2", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°3", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°4", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°5", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°6", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°7", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°8", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°9", "");
+		arguments.addArgument("è¯·æ±‚å‚æ•°10", "");
+
+		return arguments;
+	}
+
+	@Override
+	public SampleResult runTest(JavaSamplerContext javaSamplerContext) {
+		SampleResult sr = new SampleResult();
+		sr.sampleStart();
+		start = System.currentTimeMillis();
+
 		try {
-			//»ñÈ¡²ÎÊı
-			ID = arg0.getParameter("ID");  
-			URL = arg0.getParameter("URL"); 
-			
-			VERSION = arg0.getParameter("VERSION");  
-			SERVICE_NAME = arg0.getParameter("SERVICE_NAME"); 
-			
-			//dubbo³õÊ¼»¯
-			init();
-			
-			//jmeter½á¹û¶ÔÏó
-		 
-			sr.setSampleLabel(label);
-	
-			sr.sampleStart(); 
-			
-//			DemoService demoService = (DemoService)object;
-//		    String hello = demoService.sayHello("tom");
-			
-		    sr.setResponseCode("00000");
-//		    sr.setResponseMessage(hello);
-		    
-			sr.setSuccessful(true); 
-			sr.sampleEnd(); // jmeter ½áÊøÍ³¼ÆÏìÓ¦Ê±¼ä±ê¼Ç  
-		
+			Iterator<String> iterator = javaSamplerContext.getParameterNamesIterator();
+			//1.åˆ¤æ–­æ¥å£ç±»æ˜¯å¦åœ¨libç›®å½•ä¸‹
+			Class<?> clazz = null;
+			String SERVICE_NAME = iterator.next();
+			String clazzString = javaSamplerContext.getParameter(SERVICE_NAME);
+
+			try {
+				clazz = Class.forName(clazzString);
+			} catch (Exception e) {
+				sr.setResponseData(("è¯·ç¡®è®¤" + clazzString + "æ˜¯å¦æ­£ç¡®ï¼Œè€Œä¸”ç›¸åº”åŒ…å·²æ”¾å…¥libç›®å½•ä¸‹").getBytes("UTF-8"));
+				return sr;
+			}
+
+			Method method = null;
+			String METHOD_NAME = iterator.next();
+			String METHOD_TYPES = iterator.next();
+			try {
+				String methodName = javaSamplerContext.getParameter(METHOD_NAME);
+				List<String> methodTypes = JSON.parseArray(javaSamplerContext.getParameter(METHOD_TYPES), String.class);
+
+				if (methodTypes != null && methodTypes.size() > 0) {
+					Class<?>[] methodTypeArray = new Class<?>[methodTypes.size()];
+					for (int i = 0; i < methodTypes.size(); i++) {
+						methodTypeArray[i] = forName(methodTypes.get(i));
+					}
+					method = clazz.getMethod(methodName, methodTypeArray);
+				} else {
+					method = clazz.getMethod(methodName);
+				}
+			} catch (Exception e) {
+				sr.setResponseData(listAllMethod(clazz));
+				return sr;
+			}
+
+			if (method.getParameterTypes() == null || method.getParameterTypes().length == 0) {
+				return invoke(sr, method, object);
+			}else{
+				Object[] args = new Object[method.getParameterTypes().length];
+				for (int i = 0; i < method.getParameterTypes().length; i++) {
+					if (!iterator.hasNext()) {
+						sr.setResponseData("æ–¹æ³•å‚æ•°æœ‰è¯¯".getBytes("UTF-8"));
+						return sr;
+					}
+
+					String value = iterator.next();
+					try {
+						if (Collection.class.isAssignableFrom(method.getParameterTypes()[i])) {
+							//ä»…æ”¯æŒlistå†…ç›´æ¥åµŒå¥—çœŸå®ç±»å‹
+							args[i] = JSON.parseArray(javaSamplerContext.getParameter(value), (Class<?>) ((ParameterizedType) method.getGenericParameterTypes()[0]).getActualTypeArguments()[0]);
+						} else {
+							args[i] = JSON.parseObject(javaSamplerContext.getParameter(value), method.getParameterTypes()[i]);
+						}
+					} catch (RuntimeException e) {
+						sr.setResponseData("å‚æ•°æ ¼å¼é”™è¯¯".getBytes("UTF-8"));
+						return sr;
+					}
+					return invoke(sr, method, object, args);
+
+				}
+			}
+
 		} catch (Exception e) {
-			e.printStackTrace();
-			sr.setResponseCode("999");
-			sr.setResponseMessage(e.getMessage());
-			sr.setSuccessful(false);
+			logger.error("ExpertServiceJMeter response error = " + e.getMessage());
+		} finally {
+			sr.sampleEnd();
 		}
 		return sr;
 	}
-	
-	public Arguments getDefaultParameters(){  
-		//²ÎÊı¶¨Òå£¬ÏÔÊ¾ÔÚÇ°Ì¨£¬Ò²¿ÉÒÔ²»¶¨Òå  
-		Arguments params = new Arguments();  
-		params.addArgument("ID", "");  
-		params.addArgument("URL", ""); 
-		params.addArgument("VERSION", "");  
-		params.addArgument("SERVICE_NAME", "");
-		return params;  
-		}  
-	
-	public void teardownTest(JavaSamplerContext arg0){  
-		super.teardownTest(arg0);  
-	}  
+
+	@Override
+	public void teardownTest(JavaSamplerContext arg0) {
+		end = System.currentTimeMillis();
+		logger.info("    cost time: " + (end - start) + "ms");
+	}
+
+	private SampleResult invoke(SampleResult sampleResult, Method method,Object object, Object... args) throws IOException {
+		ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
+		try {
+			Object obj = method.invoke(object, args);
+			sampleResult.setSuccessful(true);
+			sampleResult.setResponseData(JSON.toJSONString(obj).getBytes("UTF-8"));
+		} catch (Exception e) {
+			sampleResult.setSuccessful(false);
+			e.printStackTrace(new java.io.PrintWriter(buf, true));
+			sampleResult.setResponseData(("è¿è¡Œé”™è¯¯,é”™è¯¯ä¿¡æ¯å¦‚ä¸‹:" + buf.toString()).getBytes("UTF-8"));
+		} finally {
+			buf.close();
+		}
+		return sampleResult;
+	}
+
+
+	static Map<String, Class<?>> classForNameMap = new HashMap<String, Class<?>>();
+	static {
+		classForNameMap.put(int.class.getName(), int.class);
+		classForNameMap.put(long.class.getName(), long.class);
+		classForNameMap.put(float.class.getName(), float.class);
+		classForNameMap.put(double.class.getName(), double.class);
+		classForNameMap.put(byte.class.getName(), byte.class);
+		classForNameMap.put(boolean.class.getName(), boolean.class);
+		classForNameMap.put(short.class.getName(), short.class);
+		classForNameMap.put(char.class.getName(), char.class);
+	}
+
+	private Class<?> forName(String string) throws ClassNotFoundException {
+		if (classForNameMap.get(string) != null) {
+			return classForNameMap.get(string);
+		}
+		return Class.forName(string);
+	}
+
+	private List<String> toList(Class<?>[] parameterTypes) {
+		List<String> list = new ArrayList<String>();
+		for (Class<?> parameterType : parameterTypes) {
+			list.add(parameterType.getName());
+		}
+		return list;
+	}
+
+	private byte[] listAllMethod(Class<?> clazz) throws UnsupportedEncodingException {
+		JSONArray jsonArray = new JSONArray();
+		Method[] methods = clazz.getMethods();
+		for (Method method : methods) {
+			JSONObject jsonObject = new JSONObject();
+			jsonObject.put("æ–¹æ³•å‚æ•°ç±»å‹æ•°ç»„", toList(method.getParameterTypes()));
+			jsonObject.put("æ–¹æ³•å", method.getName());
+			jsonArray.add(jsonObject);
+		}
+		return ("æ–¹æ³•ä¸å­˜åœ¨,è¯·æ ¸å¯¹.æ¥å£" + clazz.getName() + "å¯è®¿é—®çš„æ–¹æ³•ä¸€å…±æœ‰:" + jsonArray.toJSONString()).getBytes("UTF-8");
+	}
+
+	public static void main(String[] args) {
+		Arguments arguments = new Arguments();
+		arguments.addArgument("serviceName","com.zto.order.OrderSearchService");
+		arguments.addArgument("methodName","searchOrder");
+		arguments.addArgument("methodTypes","['com.zto.order.bean.request.SearchOrderReq']");
+		arguments.addArgument("params1","{\"sendName\":\"fdas\",\"pageSize\":\"1000\",\"pageIndex\":\"1\",\"startTime\":\"20170916\",\"endTime\":\"20170919\"}");
+		JavaSamplerContext javaSamplerContex = new JavaSamplerContext(arguments);
+		TestConsumer jMeter = new TestConsumer();
+		jMeter.setupTest(javaSamplerContex);
+		jMeter.runTest(javaSamplerContex);
+	}
 }
