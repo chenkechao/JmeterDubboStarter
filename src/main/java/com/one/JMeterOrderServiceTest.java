@@ -1,4 +1,4 @@
-
+package com.one;
 
 import com.alibaba.dubbo.config.ApplicationConfig;
 import com.alibaba.dubbo.config.ReferenceConfig;
@@ -226,16 +226,4 @@ public class JMeterOrderServiceTest extends AbstractJavaSamplerClient {
         }
         return ("方法不存在,请核对.接口" + clazz.getName() + "可访问的方法一共有:" + jsonArray.toJSONString()).getBytes("UTF-8");
     }
-
-//    public static void main(String[] args) {
-//        Arguments arguments = new Arguments();
-//        arguments.addArgument("serviceName","com.one.order.PreOrderSearchService");
-//        arguments.addArgument("methodName","searchPreOrder");
-//        arguments.addArgument("methodTypes","['com.one.order.bean.request.SearchOrderReq']");
-//        arguments.addArgument("params1","{\"orderCodes\":[\"170918000001063303\"],\"pageSize\":\"1000\",\"pageIndex\":\"1\",\"startTime\":\"20160916\",\"endTime\":\"20170919\"}");
-//        JavaSamplerContext javaSamplerContex = new JavaSamplerContext(arguments);
-//        JMeterOrderServiceTest jMeter = new JMeterOrderServiceTest();
-//        jMeter.setupTest(javaSamplerContex);
-//        jMeter.runTest(javaSamplerContex);
-//    }
 }
