@@ -1,5 +1,8 @@
 package com.one;
 
+import com.alibaba.dubbo.config.RegistryConfig;
+import com.alibaba.dubbo.config.utils.ReferenceConfigCache;
+import com.alibaba.dubbo.rpc.service.GenericService;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -28,23 +31,22 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 	private long start = 0;//记录测试开始时间；
 	private long end = 0;//记录测试结束时间；
 
-	private String ID = "serviceImpl";
-	private String URL = "dubbo://zk1.ztosys.com:2181";
-	private String VERSION = "";
+	private String APP_NAME = "";
+	private String URL = "zookeeper://11:2181?backup=12:2181,13:2181";
+	private String PROTO = "dubbo";
 	private String SERVICE_NAME;
-	private Object object;
+	private GenericService genericService;
+	private ReferenceConfig<GenericService> reference;
 
 	private void initDubboClient(){
-		ApplicationConfig application = new ApplicationConfig();
-		application.setName("zzt-service");
-
-		ReferenceConfig reference = new ReferenceConfig();
-		reference.setApplication(application);
-		reference.setId(ID);
-		reference.setVersion(VERSION);
+		reference = new ReferenceConfig<GenericService>();
+		reference.setApplication(new ApplicationConfig(APP_NAME));
 		reference.setInterface(SERVICE_NAME);
-		reference.setUrl(URL);
-		object = reference.get();
+		reference.setProtocol(PROTO);
+		reference.setTimeout(3000);
+		//reference.setLazy(true);
+		reference.setRegistry(new RegistryConfig(URL));
+		reference.setGeneric(true);
 	}
 
 	//初始化操作
@@ -65,12 +67,8 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 	 */
 	public Arguments getDefaultParameters() {
 		Arguments arguments = new Arguments();
-		//params.addArgument("ID", "orderSearchServiceImpl");
-		//params.addArgument("URL", "dubbo://192.168.133.1:20880");
-		//params.addArgument("VERSION", "2.5.3");
-		//params.addArgument("VERSION", "");
-		arguments.addArgument("接口名(必填)", "com.zto.order.OrderSearchService");
-		arguments.addArgument("方法名(必填)", "searchOrder");
+		arguments.addArgument("接口名(必填)", "com.xx.order.OsdSearchService");
+		arguments.addArgument("方法名(必填)", "searchOxx");
 		arguments.addArgument("方法参数类型数组(必填)", "['java.lang.String','java.lang.String']");
 		arguments.addArgument("请求参数1", "");
 		arguments.addArgument("请求参数2", "");
@@ -109,9 +107,11 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 			Method method = null;
 			String METHOD_NAME = iterator.next();
 			String METHOD_TYPES = iterator.next();
+			String methodName = null;
+			List<String> methodTypes = null;
 			try {
-				String methodName = javaSamplerContext.getParameter(METHOD_NAME);
-				List<String> methodTypes = JSON.parseArray(javaSamplerContext.getParameter(METHOD_TYPES), String.class);
+				methodName = javaSamplerContext.getParameter(METHOD_NAME);
+				methodTypes = JSON.parseArray(javaSamplerContext.getParameter(METHOD_TYPES), String.class);
 
 				if (methodTypes != null && methodTypes.size() > 0) {
 					Class<?>[] methodTypeArray = new Class<?>[methodTypes.size()];
@@ -128,7 +128,7 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 			}
 
 			if (method.getParameterTypes() == null || method.getParameterTypes().length == 0) {
-				return invoke(sr, method, object);
+				return invoke(sr, methodName, genericService,null,null);
 			}else{
 				Object[] args = new Object[method.getParameterTypes().length];
 				for (int i = 0; i < method.getParameterTypes().length; i++) {
@@ -149,7 +149,7 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 						sr.setResponseData("参数格式错误".getBytes("UTF-8"));
 						return sr;
 					}
-					return invoke(sr, method, object, args);
+					return invoke(sr, methodName, genericService,methodTypes.toArray(new String[]{}),args);
 
 				}
 			}
@@ -168,12 +168,14 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 		logger.info("    cost time: " + (end - start) + "ms");
 	}
 
-	private SampleResult invoke(SampleResult sampleResult, Method method,Object object, Object... args) throws IOException {
+	private SampleResult invoke(SampleResult sampleResult, String methodName,GenericService genericService, String[] methodTypes,Object... args) throws IOException {
 		ByteArrayOutputStream buf = new java.io.ByteArrayOutputStream();
 		try {
-			Object obj = method.invoke(object, args);
+			ReferenceConfigCache cache = ReferenceConfigCache.getCache();
+			genericService = cache.get(reference);
+			Object result = genericService.$invoke(methodName,methodTypes,args);
 			sampleResult.setSuccessful(true);
-			sampleResult.setResponseData(JSON.toJSONString(obj).getBytes("UTF-8"));
+			sampleResult.setResponseData(JSON.toJSONString(result).getBytes("UTF-8"));
 		} catch (Exception e) {
 			sampleResult.setSuccessful(false);
 			e.printStackTrace(new java.io.PrintWriter(buf, true));
@@ -222,17 +224,5 @@ public class TestConsumer  extends AbstractJavaSamplerClient {
 			jsonArray.add(jsonObject);
 		}
 		return ("方法不存在,请核对.接口" + clazz.getName() + "可访问的方法一共有:" + jsonArray.toJSONString()).getBytes("UTF-8");
-	}
-
-	public static void main(String[] args) {
-		Arguments arguments = new Arguments();
-		arguments.addArgument("serviceName","com.zto.order.OrderSearchService");
-		arguments.addArgument("methodName","searchOrder");
-		arguments.addArgument("methodTypes","['com.zto.order.bean.request.SearchOrderReq']");
-		arguments.addArgument("params1","{\"sendName\":\"fdas\",\"pageSize\":\"1000\",\"pageIndex\":\"1\",\"startTime\":\"20170916\",\"endTime\":\"20170919\"}");
-		JavaSamplerContext javaSamplerContex = new JavaSamplerContext(arguments);
-		TestConsumer jMeter = new TestConsumer();
-		jMeter.setupTest(javaSamplerContex);
-		jMeter.runTest(javaSamplerContex);
 	}
 }
